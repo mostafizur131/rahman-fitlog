@@ -1,14 +1,17 @@
-import React from "react";
 import Banner from "@/components/homepage/Banner";
 import WorkoutLibrary from "@/components/homepage/WorkoutLibrary";
+import { getWorkouts } from "@/app/lib/api";
 
-const page = () => {
+const HomePage = async () => {
+  const workouts = await getWorkouts();
+
   return (
-    <div>
+    <>
       <Banner />
-      <WorkoutLibrary />
-    </div>
+
+      <WorkoutLibrary workouts={workouts} />
+    </>
   );
 };
 
-export default page;
+export default HomePage;

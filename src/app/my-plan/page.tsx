@@ -1,7 +1,10 @@
-import React from "react";
+import MyPlanClient from "@/components/my-plan/MyPlanClient";
+import { getWorkouts } from "@/app/lib/api";
 
-const MyPlan = () => {
-  return <div> I am From My Plan Page</div>;
+const MyPlanPage = async () => {
+  const workouts = await getWorkouts();
+
+  return <MyPlanClient workouts={workouts} />;
 };
 
-export default MyPlan;
+export default MyPlanPage;

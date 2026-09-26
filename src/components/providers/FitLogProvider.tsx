@@ -22,6 +22,8 @@ interface FitLogContextType {
 
   canAddToPlan: boolean;
 
+  hydrated: boolean;
+
   addToPlan: (id: number) => void;
   removeFromPlan: (id: number) => void;
 
@@ -158,6 +160,8 @@ export const FitLogProvider = ({ children }: { children: ReactNode }) => {
         savedCount: savedIds.length,
 
         canAddToPlan: planIds.length < 5,
+
+        hydrated,
 
         addToPlan,
         removeFromPlan,

@@ -4,7 +4,7 @@ export interface IWorkout {
   image: string;
   muscleGroups: string[];
   equipment: string;
-  difficulty: "Beginner" | "Intermediate" | "Advanced";
+  difficulty: string;
   duration: number;
   caloriesBurned: number;
   sets: number;
