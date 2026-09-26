@@ -2,26 +2,30 @@ import type { IWorkout } from "@/types/workout";
 
 const API_BASE_URL = "https://api.abcz.workers.dev/api/fitlog";
 
-export const getWorkouts = async (): Promise<IWorkout[]> => {
-  const response = await fetch(API_BASE_URL, {
-    cache: "no-store",
+const request = async <T>(url: string): Promise<T> => {
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+    },
   });
 
   if (!response.ok) {
-    throw new Error("Failed to fetch workouts");
+    const errorText = await response.text();
+
+    throw new Error(
+      `FitLog API error: ${response.status} ${response.statusText}${
+        errorText ? ` - ${errorText}` : ""
+      }`,
+    );
   }
 
   return response.json();
 };
 
+export const getWorkouts = async (): Promise<IWorkout[]> => {
+  return request<IWorkout[]>(API_BASE_URL);
+};
+
 export const getWorkout = async (id: string): Promise<IWorkout> => {
-  const response = await fetch(`${API_BASE_URL}/${id}`, {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error("Workout not found");
-  }
-
-  return response.json();
+  return request<IWorkout>(`${API_BASE_URL}/${id}`);
 };

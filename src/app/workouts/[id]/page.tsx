@@ -1,7 +1,4 @@
-import { notFound } from "next/navigation";
-
-import WorkoutDetails from "@/components/workouts/WorkoutDetails";
-import { getWorkouts } from "@/app/lib/api";
+import WorkoutDetailsClient from "@/components/workouts/WorkoutDetailsClient";
 
 interface WorkoutDetailsPageProps {
   params: Promise<{
@@ -12,14 +9,7 @@ interface WorkoutDetailsPageProps {
 const WorkoutDetailsPage = async ({ params }: WorkoutDetailsPageProps) => {
   const { id } = await params;
 
-  const workouts = await getWorkouts();
-  const workout = workouts.find((item) => item.id === Number(id));
-
-  if (!workout) {
-    notFound();
-  }
-
-  return <WorkoutDetails workout={workout} />;
+  return <WorkoutDetailsClient id={id} />;
 };
 
 export default WorkoutDetailsPage;

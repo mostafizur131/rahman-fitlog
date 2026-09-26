@@ -2,15 +2,11 @@
 
 import {
   createContext,
+  ReactNode,
   useContext,
   useEffect,
   useState,
-  type ReactNode,
 } from "react";
-
-const PLAN_KEY = "fitlog-plan";
-const SAVED_KEY = "fitlog-saved";
-const DONE_KEY = "fitlog-done";
 
 interface FitLogContextType {
   planIds: number[];
@@ -21,7 +17,6 @@ interface FitLogContextType {
   savedCount: number;
 
   canAddToPlan: boolean;
-
   hydrated: boolean;
 
   addToPlan: (id: number) => void;
@@ -42,51 +37,68 @@ export const FitLogProvider = ({ children }: { children: ReactNode }) => {
   const [savedIds, setSavedIds] = useState<number[]>([]);
   const [doneIds, setDoneIds] = useState<number[]>([]);
 
+  const [hydrated, setHydrated] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
-  const [hydrated, setHydrated] = useState(false);
-
-  /* ================= LOAD ================= */
-
   useEffect(() => {
-    try {
-      const plan = localStorage.getItem(PLAN_KEY);
-      const saved = localStorage.getItem(SAVED_KEY);
-      const done = localStorage.getItem(DONE_KEY);
+    const timer = window.setTimeout(() => {
+      try {
+        const storedPlan = localStorage.getItem("fitlog-plan");
+        const storedSaved = localStorage.getItem("fitlog-saved");
+        const storedDone = localStorage.getItem("fitlog-done");
 
-      if (plan) {
-        setPlanIds(JSON.parse(plan));
+        if (storedPlan) {
+          const parsed = JSON.parse(storedPlan);
+
+          if (Array.isArray(parsed)) {
+            setPlanIds(parsed);
+          }
+        }
+
+        if (storedSaved) {
+          const parsed = JSON.parse(storedSaved);
+
+          if (Array.isArray(parsed)) {
+            setSavedIds(parsed);
+          }
+        }
+
+        if (storedDone) {
+          const parsed = JSON.parse(storedDone);
+
+          if (Array.isArray(parsed)) {
+            setDoneIds(parsed);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load FitLog storage:", error);
+      } finally {
+        setHydrated(true);
       }
+    }, 0);
 
-      if (saved) {
-        setSavedIds(JSON.parse(saved));
-      }
-
-      if (done) {
-        setDoneIds(JSON.parse(done));
-      }
-    } catch {
-      setPlanIds([]);
-      setSavedIds([]);
-      setDoneIds([]);
-    }
-
-    setHydrated(true);
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, []);
-
-  /* ================= SAVE ================= */
 
   useEffect(() => {
     if (!hydrated) return;
 
-    localStorage.setItem(PLAN_KEY, JSON.stringify(planIds));
+    localStorage.setItem("fitlog-plan", JSON.stringify(planIds));
+  }, [planIds, hydrated]);
 
-    localStorage.setItem(SAVED_KEY, JSON.stringify(savedIds));
+  useEffect(() => {
+    if (!hydrated) return;
 
-    localStorage.setItem(DONE_KEY, JSON.stringify(doneIds));
-  }, [planIds, savedIds, doneIds, hydrated]);
+    localStorage.setItem("fitlog-saved", JSON.stringify(savedIds));
+  }, [savedIds, hydrated]);
 
-  /* ================= TOAST ================= */
+  useEffect(() => {
+    if (!hydrated) return;
+
+    localStorage.setItem("fitlog-done", JSON.stringify(doneIds));
+  }, [doneIds, hydrated]);
 
   const showToast = (message: string) => {
     setToast(message);
@@ -96,31 +108,27 @@ export const FitLogProvider = ({ children }: { children: ReactNode }) => {
     }, 2500);
   };
 
-  /* ================= PLAN ================= */
-
   const addToPlan = (id: number) => {
     if (planIds.includes(id)) {
-      showToast("Already added to today's plan");
+      showToast("Already in today's plan");
       return;
     }
 
     if (planIds.length >= 5) {
-      showToast("Today's plan is limited to 5 lifts");
+      showToast("Today's plan is full");
       return;
     }
 
-    setPlanIds((current) => [...current, id]);
-
+    setPlanIds((prev) => [...prev, id]);
     showToast("Added to today's plan");
   };
 
   const removeFromPlan = (id: number) => {
-    setPlanIds((current) => current.filter((item) => item !== id));
+    setPlanIds((prev) => prev.filter((item) => item !== id));
+    setDoneIds((prev) => prev.filter((item) => item !== id));
 
     showToast("Removed from today's plan");
   };
-
-  /* ================= SAVED ================= */
 
   const saveWorkout = (id: number) => {
     if (savedIds.includes(id)) {
@@ -128,24 +136,22 @@ export const FitLogProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    setSavedIds((current) => [...current, id]);
-
+    setSavedIds((prev) => [...prev, id]);
     showToast("Saved for later");
   };
 
   const removeSaved = (id: number) => {
-    setSavedIds((current) => current.filter((item) => item !== id));
+    setSavedIds((prev) => prev.filter((item) => item !== id));
 
     showToast("Removed from saved");
   };
 
-  /* ================= DONE ================= */
-
   const markAsDone = (id: number) => {
-    if (!doneIds.includes(id)) {
-      setDoneIds((current) => [...current, id]);
+    if (doneIds.includes(id)) {
+      return;
     }
 
+    setDoneIds((prev) => [...prev, id]);
     showToast("Workout marked as done");
   };
 
@@ -155,49 +161,25 @@ export const FitLogProvider = ({ children }: { children: ReactNode }) => {
         planIds,
         savedIds,
         doneIds,
-
         planCount: planIds.length,
         savedCount: savedIds.length,
-
         canAddToPlan: planIds.length < 5,
-
         hydrated,
-
         addToPlan,
         removeFromPlan,
-
         saveWorkout,
         removeSaved,
-
         markAsDone,
-
         toast,
       }}
     >
       {children}
 
       {toast && (
-        <div
-          role="status"
-          className="
-            fixed
-            bottom-5
-            left-1/2
-            z-9999
-            -translate-x-1/2
-            rounded-lg
-            border
-            border-[#343943]
-            bg-[#17191e]
-            px-5
-            py-3
-            text-sm
-            font-medium
-            text-white
-            shadow-2xl
-          "
-        >
-          {toast}
+        <div className="toast toast-end toast-bottom z-9999">
+          <div className="alert border-[#ccff00] bg-[#15171c] text-white shadow-xl">
+            <span>{toast}</span>
+          </div>
         </div>
       )}
     </FitLogContext.Provider>

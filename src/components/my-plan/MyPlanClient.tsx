@@ -7,11 +7,10 @@ import { Check, ChevronDown, Clock3, Flame, Star, X } from "lucide-react";
 
 import type { IWorkout } from "@/types/workout";
 import { useFitLog } from "@/components/providers/FitLogProvider";
+import { getWorkouts } from "@/app/lib/api";
 
 type Tab = "plan" | "saved";
 type SortOption = "duration" | "calories" | "rating";
-
-const API_URL = "https://api.abcz.workers.dev/api/fitlog";
 
 const MyPlanClient = () => {
   const {
@@ -25,48 +24,60 @@ const MyPlanClient = () => {
   } = useFitLog();
 
   const [workouts, setWorkouts] = useState<IWorkout[]>([]);
-
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [tab, setTab] = useState<Tab>("plan");
   const [sortBy, setSortBy] = useState<SortOption>("duration");
 
   /* =====================================================
      FETCH WORKOUTS
-  ====================================================== */
+  ===================================================== */
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchWorkouts = async () => {
       try {
         setLoading(true);
+        setError(null);
 
-        const response = await fetch(API_URL);
+        const data = await getWorkouts();
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch workouts");
+        if (!cancelled) {
+          setWorkouts(data);
         }
-
-        const data: IWorkout[] = await response.json();
-
-        setWorkouts(data);
       } catch (error) {
         console.error("Failed to load workouts:", error);
+
+        if (!cancelled) {
+          setError(
+            error instanceof Error ? error.message : "Failed to load workouts.",
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchWorkouts();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   /* =====================================================
      CURRENT IDS
-  ====================================================== */
+  ===================================================== */
 
   const currentIds = tab === "plan" ? planIds : savedIds;
 
   /* =====================================================
      FILTER + SORT
-  ====================================================== */
+  ===================================================== */
 
   const currentWorkouts = useMemo(() => {
     const filtered = workouts.filter((workout) =>
@@ -87,12 +98,11 @@ const MyPlanClient = () => {
   }, [workouts, currentIds, sortBy]);
 
   /* =====================================================
-     METRICS
+     TODAY'S PLAN METRICS
      
-     IMPORTANT:
-     Metrics always represent TODAY'S PLAN,
-     even when Saved tab is active.
-  ====================================================== */
+     These metrics always represent Today's Plan,
+     even when the Saved tab is selected.
+  ===================================================== */
 
   const planWorkouts = useMemo(() => {
     return workouts.filter((workout) => planIds.includes(workout.id));
@@ -112,13 +122,23 @@ const MyPlanClient = () => {
 
   /* =====================================================
      LOADING
-  ====================================================== */
+  ===================================================== */
 
   if (loading || !hydrated) {
     return (
       <main className="min-h-screen bg-[#0b0c0f]">
-        <section className="mx-auto max-w-[1184px] px-4 py-10 sm:px-6 lg:px-0 lg:py-12">
-          <div className="flex min-h-[420px] items-center justify-center">
+        <section
+          className="
+            mx-auto
+            max-w-296
+            px-4
+            py-10
+            sm:px-6
+            lg:px-0
+            lg:py-12
+          "
+        >
+          <div className="flex min-h-105 items-center justify-center">
             <div className="text-center">
               <span className="loading loading-spinner loading-md text-[#ccff00]" />
 
@@ -130,12 +150,97 @@ const MyPlanClient = () => {
     );
   }
 
+  /* =====================================================
+     ERROR
+  ===================================================== */
+
+  if (error) {
+    return (
+      <main className="min-h-screen bg-[#0b0c0f]">
+        <section
+          className="
+            mx-auto
+            w-full
+            max-w-296
+            px-4
+            py-10
+            sm:px-6
+            lg:px-0
+            lg:py-11
+          "
+        >
+          <div className="flex min-h-105 items-center justify-center">
+            <div className="max-w-lg text-center">
+              <h1
+                className="
+                  font-oswald
+                  text-3xl
+                  font-bold
+                  uppercase
+                  text-white
+                  sm:text-4xl
+                "
+              >
+                Unable to Load Workouts
+              </h1>
+
+              <p className="mt-3 text-sm leading-6 text-[#858994]">
+                Something went wrong while loading your workout data.
+              </p>
+
+              <p className="mt-2 wrap-break-word text-xs text-[#5f636c]">
+                {error}
+              </p>
+
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="
+                  mt-6
+                  inline-flex
+                  h-10
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-[#ccff00]
+                  px-6
+                  text-xs
+                  font-bold
+                  text-black
+                  transition
+                  hover:bg-[#d7ff43]
+                "
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  /* =====================================================
+     MAIN
+  ===================================================== */
+
   return (
     <main className="min-h-screen bg-[#0b0c0f]">
-      <section className="mx-auto w-full max-w-[1184px] px-4 py-10 sm:px-6 lg:px-0 lg:py-11">
-        {/* =====================================================
+      <section
+        className="
+          mx-auto
+          w-full
+          max-w-296
+          px-4
+          py-10
+          sm:px-6
+          lg:px-0
+          lg:py-11
+        "
+      >
+        {/* =================================================
             HEADER
-        ====================================================== */}
+        ================================================= */}
 
         <div>
           <h1
@@ -158,9 +263,9 @@ const MyPlanClient = () => {
           </p>
         </div>
 
-        {/* =====================================================
+        {/* =================================================
             METRICS
-        ====================================================== */}
+        ================================================= */}
 
         <div
           className="
@@ -182,11 +287,21 @@ const MyPlanClient = () => {
           <MetricCard label="Calories" value={calories} bordered />
         </div>
 
-        {/* =====================================================
+        {/* =================================================
             TABS + SORT
-        ====================================================== */}
+        ================================================= */}
 
-        <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          className="
+            mt-8
+            flex
+            flex-col
+            gap-4
+            sm:flex-row
+            sm:items-center
+            sm:justify-between
+          "
+        >
           {/* Tabs */}
 
           <div
@@ -204,7 +319,7 @@ const MyPlanClient = () => {
               type="button"
               onClick={() => setTab("plan")}
               className={`
-                min-w-[110px]
+                min-w-27.5
                 rounded-lg
                 px-4
                 py-2
@@ -218,14 +333,14 @@ const MyPlanClient = () => {
                 }
               `}
             >
-              Today's Plan
+              Todays Plan
             </button>
 
             <button
               type="button"
               onClick={() => setTab("saved")}
               className={`
-                min-w-[108px]
+                min-w-27
                 rounded-lg
                 px-4
                 py-2
@@ -271,9 +386,7 @@ const MyPlanClient = () => {
                 "
               >
                 <option value="duration">Duration</option>
-
                 <option value="calories">Calories</option>
-
                 <option value="rating">Rating</option>
               </select>
 
@@ -292,13 +405,13 @@ const MyPlanClient = () => {
           </div>
         </div>
 
-        {/* =====================================================
+        {/* =================================================
             CONTENT
-        ====================================================== */}
+        ================================================= */}
 
         <div className="mt-6">
           {currentWorkouts.length === 0 ? (
-            <EmptyState />
+            <EmptyState tab={tab} />
           ) : (
             <div className="space-y-4">
               {currentWorkouts.map((workout) => (
@@ -398,23 +511,50 @@ const PlanWorkoutCard = ({
         border-[#272b33]
         bg-[#14171d]
         p-4
-        sm:p-4
+        transition
+        hover:border-[#343944]
       "
     >
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-        {/* Thumbnail */}
+      <div
+        className="
+          flex
+          flex-col
+          gap-5
+          sm:flex-row
+          sm:items-center
+        "
+      >
+        {/* =================================================
+            THUMBNAIL
+        ================================================= */}
 
-        <div className="relative h-[92px] w-full shrink-0 overflow-hidden rounded-xl sm:h-[80px] sm:w-[144px]">
+        <div
+          className="
+            relative
+            h-40
+            w-full
+            shrink-0
+            overflow-hidden
+            rounded-xl
+            sm:h-20
+            sm:w-36
+          "
+        >
           <Image
             src={workout.image}
             alt={workout.name}
             fill
-            sizes="144px"
+            sizes="
+              (max-width: 639px) 100vw,
+              144px
+            "
             className="object-cover"
           />
         </div>
 
-        {/* Information */}
+        {/* =================================================
+            INFORMATION
+        ================================================= */}
 
         <div className="min-w-0 flex-1">
           <h3
@@ -435,7 +575,17 @@ const PlanWorkoutCard = ({
 
           {/* Stats */}
 
-          <div className="mt-2.5 flex flex-wrap items-center gap-4 text-[11px] text-[#9b9fa8]">
+          <div
+            className="
+              mt-2.5
+              flex
+              flex-wrap
+              items-center
+              gap-4
+              text-[11px]
+              text-[#9b9fa8]
+            "
+          >
             <span className="flex items-center gap-1.5">
               <Clock3 size={13} strokeWidth={1.8} className="text-[#ccff00]" />
               {workout.duration} min
@@ -448,19 +598,31 @@ const PlanWorkoutCard = ({
 
             <span className="flex items-center gap-1.5">
               <Star size={13} strokeWidth={1.8} className="text-[#ccff00]" />
+
               {workout.rating}
             </span>
           </div>
         </div>
 
-        {/* Actions */}
+        {/* =================================================
+            ACTIONS
+        ================================================= */}
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div
+          className="
+            flex
+            shrink-0
+            items-center
+            gap-2
+          "
+        >
+          {/* View Details */}
+
           <Link
             href={`/workouts/${workout.id}`}
             className="
               inline-flex
-              h-[35px]
+              h-8.75
               items-center
               justify-center
               rounded-full
@@ -478,7 +640,7 @@ const PlanWorkoutCard = ({
             View Details
           </Link>
 
-          {/* Only Today's Plan has Mark as Done */}
+          {/* Mark as Done */}
 
           {tab === "plan" && (
             <button
@@ -487,7 +649,7 @@ const PlanWorkoutCard = ({
               disabled={done}
               className={`
                 inline-flex
-                h-[35px]
+                h-8.75
                 items-center
                 justify-center
                 gap-1.5
@@ -517,8 +679,8 @@ const PlanWorkoutCard = ({
             aria-label={`Remove ${workout.name}`}
             className="
               flex
-              h-[35px]
-              w-[30px]
+              h-8.75
+              w-7.5
               items-center
               justify-center
               rounded-full
@@ -540,12 +702,18 @@ const PlanWorkoutCard = ({
    EMPTY STATE
 ========================================================= */
 
-const EmptyState = () => {
+interface EmptyStateProps {
+  tab: Tab;
+}
+
+const EmptyState = ({ tab }: EmptyStateProps) => {
+  const isPlan = tab === "plan";
+
   return (
     <div
       className="
         flex
-        min-h-[300px]
+        min-h-75
         flex-col
         items-center
         justify-center
@@ -569,11 +737,13 @@ const EmptyState = () => {
           sm:text-2xl
         "
       >
-        NOTHING HERE YET
+        {isPlan ? "NOTHING HERE YET" : "NO SAVED WORKOUTS"}
       </h2>
 
       <p className="mt-2 max-w-md text-xs text-[#81858f] sm:text-sm">
-        Browse the library and add a lift to get today moving.
+        {isPlan
+          ? "Browse the library and add a lift to get today moving."
+          : "Save workouts from the library and find them here later."}
       </p>
 
       <Link
@@ -594,7 +764,7 @@ const EmptyState = () => {
           hover:bg-[#d7ff43]
         "
       >
-        Go to workouts
+        Go to Workouts
       </Link>
     </div>
   );

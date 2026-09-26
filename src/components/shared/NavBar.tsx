@@ -5,17 +5,17 @@ import { usePathname } from "next/navigation";
 import logo from "@/assets/logo.png";
 import Image from "next/image";
 import { Menu } from "lucide-react";
+import { useFitLog } from "@/components/providers/FitLogProvider";
 
-interface NavbarProps {
-  planCount?: number;
-  savedCount?: number;
-}
-
-const NavBar = ({ planCount = 0, savedCount = 0 }: NavbarProps) => {
+const NavBar = () => {
   const pathname = usePathname();
 
-  const isWorkoutActive = pathname === "/";
-  const isPlanActive = pathname === "/my-plan";
+  const isWorkoutActive = pathname === "/" || pathname.startsWith("/workouts/");
+
+  const isPlanActive =
+    pathname === "/my-plan" || pathname.startsWith("/my-plan/");
+
+  const { planCount, savedCount } = useFitLog();
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#1b1d23] bg-[#0b0c0f]/95 backdrop-blur-md">
