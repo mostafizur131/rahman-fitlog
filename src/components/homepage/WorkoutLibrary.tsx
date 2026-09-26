@@ -1,12 +1,13 @@
 import React from "react";
 import WorkoutCard from "@/components/homepage/WorkoutCard";
 import { IWorkout } from "@/types/workout";
+import { getWorkouts } from "@/app/lib/api";
 
-const getWorkouts = async () => {
-  const response = await fetch("https://api.abcz.workers.dev/api/fitlog");
-  const data = await response.json();
-  return data;
-};
+// const getWorkouts = async () => {
+//   const response = await fetch("https://api.abcz.workers.dev/api/fitlog");
+//   const data = await response.json();
+//   return data;
+// };
 
 const WorkoutLibrary = async () => {
   const workoutData = await getWorkouts();
