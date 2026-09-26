@@ -1,5 +1,6 @@
 import React from "react";
 import WorkoutCard from "@/components/homepage/WorkoutCard";
+import { IWorkout } from "@/types/workout";
 
 const getWorkouts = async () => {
   const response = await fetch("https://api.abcz.workers.dev/api/fitlog");
@@ -58,7 +59,7 @@ const WorkoutLibrary = async () => {
           lg:gap-5
         "
       >
-        {workoutData.map((workout) => (
+        {workoutData.map((workout: IWorkout) => (
           <WorkoutCard key={workout.id} workout={workout} />
         ))}
       </div>

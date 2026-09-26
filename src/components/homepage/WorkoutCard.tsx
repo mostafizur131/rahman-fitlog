@@ -1,13 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Clock3, Flame, Star } from "lucide-react";
-// import type { IWorkout } from "@/types/workout";
+import { IWorkout } from "@/types/workout";
 
-// interface WorkoutCardProps {
-//   workout: IWorkout;
-// }
+interface WorkoutCardProps {
+  workout: IWorkout;
+}
 
-const WorkoutCard = ({ workout }) => {
+const WorkoutCard = ({ workout }: WorkoutCardProps) => {
   return (
     <Link href={`/workouts/${workout.id}`} className="group block">
       <article
